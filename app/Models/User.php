@@ -43,6 +43,11 @@ public function perfil()
     return $this->hasOne(PerfilEmpleado::class, 'user_id');
 }
 
+// App\Models\User.php
+public function documents()
+{
+    return $this->hasMany(UserDocument::class);
+}
 
     /**
      * Get the attributes that should be cast.

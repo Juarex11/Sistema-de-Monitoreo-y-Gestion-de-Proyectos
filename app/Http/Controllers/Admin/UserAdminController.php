@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\PerfilEmpleado;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserAdminController extends Controller
 {
@@ -15,69 +17,118 @@ class UserAdminController extends Controller
         return view('admin.usuarios.index', compact('usuarios'));
     }
 
-    public function info($id)
+    // Verificar disponibilidad de email via AJAX
+    public function checkEmail(Request $request)
     {
-        $usuario = User::with('perfil')->findOrFail($id);
-        return view('admin.usuarios.info', compact('usuario'));
+        $email = $request->email;
+        $userId = $request->user_id;
+
+        $exists = User::where('email', $email)
+                      ->where('id', '!=', $userId)
+                      ->exists();
+
+        return response()->json([
+            'available' => !$exists
+        ]);
     }
 
-  public function edit($id)
-{
-    $usuario = User::with('perfil')->findOrFail($id);
-    return view('admin.usuarios.edit', compact('usuario'));
-}
+    public function update(Request $request, $id)
+    {
+        $usuario = User::findOrFail($id);
 
+        // Validación con mensajes personalizados
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($id)
+            ],
+            'rol' => 'required|in:administrador,supervisor,usuario',
+            'password' => 'nullable|min:6',
+        ], [
+            'email.unique' => 'Este correo electrónico ya está registrado por otro usuario.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debe proporcionar un correo electrónico válido.',
+            'name.required' => 'El nombre es obligatorio.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+        ]);
 
-public function update(Request $request, $id)
-{
-    $usuario = User::findOrFail($id);
+        try {
+            // Actualizar datos del usuario
+            $usuario->name = $validated['name'];
+            $usuario->email = $validated['email'];
+            $usuario->rol = $validated['rol'];
 
-    // Actualizar datos del usuario
-    $usuario->update([
-        'name' => $request->name,
-        'email' => $request->email,
-        'rol' => $request->rol
-    ]);
+            // Actualizar contraseña SOLO si se proporcionó una nueva
+            if ($request->filled('password') && !empty($request->password)) {
+                $usuario->password = Hash::make($request->password);
+            }
 
-    // Datos del perfil (TODOS los que realmente existen)
-    $perfilData = $request->only([
-        'cargo',
-        'area',
-        'remuneracion',
-        'fecha_ingreso',
-        'turno',
-        'celular',
-        'direccion',
-        'carrera',
-        'ciclo',
-        'fecha_nacimiento',
-        'observaciones'
-    ]);
+            $usuario->save();
 
-    PerfilEmpleado::updateOrCreate(
-        ['user_id' => $id],
-        $perfilData
-    );
+            // Actualizar o crear perfil
+            $perfilData = $request->only([
+                'cargo',
+                'area',
+                'remuneracion',
+                'fecha_ingreso',
+                'turno',
+                'celular',
+                'direccion',
+                'carrera',
+                'ciclo',
+                'fecha_nacimiento',
+                'observaciones'
+            ]);
 
-    return back()->with('success', 'Datos actualizados correctamente');
-}
+            PerfilEmpleado::updateOrCreate(
+                ['user_id' => $id],
+                $perfilData
+            );
 
+            return redirect()->route('usuarios.index')
+                             ->with('success', 'Usuario y perfil actualizados correctamente.');
 
-
-   public function delete($id)
-{
-    // No permitir borrar al usuario principal ID 1
-    if ($id == 1) {
-        return back()->with('error', 'El usuario administrador principal no puede ser eliminado.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Capturar errores de base de datos (como duplicados)
+            if ($e->getCode() == 23000) {
+                return redirect()->back()
+                                 ->withInput()
+                                 ->with('error', 'El correo electrónico ya está registrado por otro usuario.');
+            }
+            
+            return redirect()->back()
+                             ->withInput()
+                             ->with('error', 'Ocurrió un error al actualizar el usuario.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                             ->withInput()
+                             ->with('error', 'Ocurrió un error inesperado. Por favor, intente nuevamente.');
+        }
     }
 
-    // Eliminar perfil asociado
-    PerfilEmpleado::where('user_id', $id)->delete();
+    public function eliminar($id)
+    {
+        // No permitir borrar al usuario principal ID 1
+        if ($id == 1) {
+            return redirect()->route('usuarios.index')
+                           ->with('error', 'El usuario administrador principal no puede ser eliminado.');
+        }
 
-    // Eliminar usuario
-    User::destroy($id);
+        try {
+            // Eliminar perfil asociado
+            PerfilEmpleado::where('user_id', $id)->delete();
 
-    return back()->with('success', 'Usuario y perfil eliminados correctamente.');
-}
+            // Eliminar usuario
+            User::destroy($id);
 
+            return redirect()->route('usuarios.index')
+                             ->with('success', 'Usuario y perfil eliminados correctamente.');
+        } catch (\Exception $e) {
+            return redirect()->route('usuarios.index')
+                             ->with('error', 'No se pudo eliminar el usuario.');
+        }
+    }
 }

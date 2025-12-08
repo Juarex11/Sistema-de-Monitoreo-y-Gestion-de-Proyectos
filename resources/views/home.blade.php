@@ -29,9 +29,12 @@
         <div class="col-md-3">
             <div class="card shadow-lg">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Opción 2</h5>
-                    <p class="card-text">Aquí puedes poner otra función del sistema.</p>
-                    <a href="#" class="btn btn-secondary w-100">Entrar</a>
+                    <h5 class="card-title">Validador de Documentos</h5>
+                    <p class="card-text">Verifica si un documento existe mediante su código único.</p>
+                  <a href="{{ route('validar.documento') }}" class="btn btn-success w-100">Ir al Validador</a>
+
+
+
                 </div>
             </div>
         </div>
