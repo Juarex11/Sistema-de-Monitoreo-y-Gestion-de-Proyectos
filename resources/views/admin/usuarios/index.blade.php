@@ -137,6 +137,19 @@
                                 <option value="usuario" {{ $u->rol == 'usuario' ? 'selected' : '' }}>Usuario</option>
                             </select>
                         </div>
+
+                         <div class="col-md-4 mb-3">
+                            <label>Estado <span class="text-danger">*</span></label>
+<select name="estado" class="form-select">
+    <option value="activo" {{ $u->estado == 'activo' ? 'selected' : '' }}>Activo</option>
+    <option value="inactivo" {{ $u->estado == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
+</select>
+
+
+
+
+                        </div>
+
                     </div>
 
                     <hr>
@@ -348,57 +361,85 @@
 
             <div class="modal-body">
                 {{-- FORMULARIO PARA SUBIR NUEVO DOCUMENTO --}}
-              <form action="{{ route('usuarios.documentos.store') }}" method="POST" enctype="multipart/form-data">
-    @csrf
-    <input type="hidden" name="user_id" value="{{ $u->id }}">
+                <form action="{{ route('usuarios.documentos.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="user_id" value="{{ $u->id }}">
 
-    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-3">
 
-        {{-- Nombre del documento --}}
-        <div class="col-md-3">
-            <label>Nombre del Documento</label>
-            <input type="text" name="name" class="form-control" required>
-        </div>
+                        {{-- Nombre del documento --}}
+                        <div class="col-md-3">
+                            <label>Nombre del Documento</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
 
-        {{-- Código único --}}
-        <div class="col-md-3">
-            <label>Código único</label>
-            <input type="text" name="code" id="codeInput{{ $u->id }}" class="form-control" readonly required>
+                        {{-- Código único --}}
+                        <div class="col-md-3">
+                            <label>Código único</label>
+                            <input type="text" name="code" id="codeInput{{ $u->id }}" class="form-control" readonly required>
 
-         <button type="button" class="btn btn-secondary btn-sm mt-1 gen-code-btn"
-        data-user-id="{{ $u->id }}" data-user-name="{{ $u->name }}">
-    Generar Código
-</button>
+                            <button type="button" class="btn btn-secondary btn-sm mt-1 gen-code-btn"
+                                    data-user-id="{{ $u->id }}">
+                                Generar Código
+                            </button>
 
-        </div>
+                            <button type="button"
+                                    class="btn btn-warning btn-sm mt-1 gen-qr-btn"
+                                    data-user-id="{{ $u->id }}"
+                                    style="display:none;">
+                                Generar QR
+                            </button>
+                        </div>
 
-        {{-- Archivo PDF --}}
-        <div class="col-md-3">
-            <label>Archivo PDF</label>
-            <input type="file" name="file" class="form-control" accept=".pdf" required>
-        </div>
+                        {{-- Archivo PDF --}}
+                        <div class="col-md-3">
+                            <label>Archivo PDF</label>
+                            <input type="file" name="file" class="form-control" accept=".pdf" required>
+                        </div>
 
-        {{-- Fecha --}}
-        <div class="col-md-3">
-            <label>Fecha</label>
-            <input type="date" name="date" class="form-control" required>
-        </div>
+                        {{-- Fecha --}}
+                        <div class="col-md-3">
+                            <label>Fecha</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
 
-    </div>
+                    </div>
 
-    <button class="btn btn-success mb-3">
-        <i class="bi bi-upload"></i> Subir Documento
-    </button>
-</form>
+                    {{-- Contenedor donde aparecerá el QR --}}
+                    <div id="qrContainer{{ $u->id }}" class="mb-3" style="display:none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">QR Generado</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <img id="qrImage{{ $u->id }}" src="" class="img-fluid" style="max-width:200px; border:1px solid #ccc; padding:5px;">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label>URL de validación:</label>
+                                        <input id="qrUrl{{ $u->id }}" class="form-control mb-2" readonly>
+                                        
+                                        <a id="qrDownload{{ $u->id }}" 
+                                           download="qr_documento.png" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-download"></i> Descargar QR
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <button class="btn btn-success mb-3">
+                        <i class="bi bi-upload"></i> Subir Documento
+                    </button>
+                </form>
 
                 {{-- LISTA DE DOCUMENTOS --}}
                 <table class="table table-bordered table-striped">
-                    
                     <thead>
                         <tr>
                             <th>Nombre</th>
-                            <th>Codigo</th>
+                            <th>Código</th>
                             <th>Fecha</th>
                             <th>Subido por</th>
                             <th>Archivo</th>
@@ -409,7 +450,7 @@
                         @foreach($u->documents as $doc)
                         <tr>
                             <td>{{ $doc->name }}</td>
-                             <td>{{ $doc->code }}</td>
+                            <td>{{ $doc->code }}</td>
                             <td>{{ \Carbon\Carbon::parse($doc->date)->format('d/m/Y') }}</td>
                             <td>{{ $doc->uploaded_by }}</td>
                             <td>
@@ -430,18 +471,11 @@
                         @endforeach
                         @if($u->documents->isEmpty())
                         <tr>
-                            <td colspan="5" class="text-center">No hay documentos subidos</td>
+                            <td colspan="6" class="text-center">No hay documentos subidos</td>
                         </tr>
                         @endif
                     </tbody>
                 </table>
-                @if(session('qr'))
-    <div class="mt-3">
-        <p>QR del documento:</p>
-        <img src="data:image/png;base64,{{ session('qr') }}" alt="QR del documento">
-        <p>Código: {{ session('code') }}</p>
-    </div>
-@endif
 
             </div>
 
@@ -451,11 +485,13 @@
         </div>
     </div>
 </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const buttons = document.querySelectorAll('.gen-code-btn');
 
-    // Función para generar cadena aleatoria de letras y números
+    // ========== GENERAR CÓDIGO =============
+    const codeButtons = document.querySelectorAll('.gen-code-btn');
+
     function generarCodigo(longitud = 8) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let result = '';
@@ -465,24 +501,91 @@ document.addEventListener('DOMContentLoaded', function () {
         return result;
     }
 
-    buttons.forEach(btn => {
+    codeButtons.forEach(btn => {
         btn.addEventListener('click', function () {
             const userId = this.dataset.userId;
+            const codeInput = document.getElementById('codeInput' + userId);
+            const qrButton = this.parentElement.querySelector('.gen-qr-btn');
 
-            if (!userId) return;
+            // Generar código
+            const code = generarCodigo(8);
+            codeInput.value = code;
 
-            // Código final: solo aleatorio
-            const code = generarCodigo(8); // puedes cambiar 8 por cualquier longitud
+            // Mostrar botón de QR
+            qrButton.style.display = 'inline-block';
 
-            // Poner en input correspondiente
-            const input = document.getElementById('codeInput' + userId);
-            if (input) input.value = code;
+            // Ocultar QR anterior si existe
+            const qrContainer = document.getElementById('qrContainer' + userId);
+            qrContainer.style.display = 'none';
 
             console.log('Código generado:', code);
         });
     });
+
+    // ========== GENERAR QR =============
+    const qrButtons = document.querySelectorAll('.gen-qr-btn');
+
+    qrButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const userId = this.dataset.userId;
+            const code = document.getElementById('codeInput' + userId).value;
+
+            if (!code) {
+                alert("Primero genera un código.");
+                return;
+            }
+
+            // Mostrar loading
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+
+            fetch("{{ route('generar.qr') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Error en el servidor: ' + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success === false) {
+                    throw new Error(data.message || 'Error desconocido');
+                }
+
+                // Mostrar QR
+                document.getElementById('qrImage' + userId).src = "data:image/png;base64," + data.qr;
+
+                // Mostrar URL
+                document.getElementById('qrUrl' + userId).value = data.url;
+
+                // Preparar descarga
+                document.getElementById('qrDownload' + userId).href = "data:image/png;base64," + data.qr;
+
+                // Mostrar contenedor
+                document.getElementById('qrContainer' + userId).style.display = "block";
+
+                // Restaurar botón
+                this.disabled = false;
+                this.innerHTML = 'Generar QR';
+            })
+            .catch(err => {
+                console.error('Error completo:', err);
+                alert('Error al generar el QR: ' + err.message);
+                this.disabled = false;
+                this.innerHTML = 'Generar QR';
+            });
+        });
+    });
+
 });
 </script>
+
 
 @endforeach
 

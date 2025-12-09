@@ -37,29 +37,32 @@ class UserAdminController extends Controller
         $usuario = User::findOrFail($id);
 
         // Validación con mensajes personalizados
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($id)
-            ],
-            'rol' => 'required|in:administrador,supervisor,usuario',
-            'password' => 'nullable|min:6',
-        ], [
-            'email.unique' => 'Este correo electrónico ya está registrado por otro usuario.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'Debe proporcionar un correo electrónico válido.',
-            'name.required' => 'El nombre es obligatorio.',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
-        ]);
+      $validated = $request->validate([
+    'name' => 'required|string|max:100',
+    'email' => [
+        'required',
+        'email',
+        'max:255',
+        Rule::unique('users', 'email')->ignore($id)
+    ],
+    'rol' => 'required|in:administrador,supervisor,usuario',
+    'estado' => 'required|in:activo,inactivo', // ← AQUI DEBE IR
+    'password' => 'nullable|min:6',
+], [
+    'email.unique' => 'Este correo electrónico ya está registrado por otro usuario.',
+    'email.required' => 'El correo electrónico es obligatorio.',
+    'email.email' => 'Debe proporcionar un correo electrónico válido.',
+    'name.required' => 'El nombre es obligatorio.',
+    'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+]);
+
 
         try {
             // Actualizar datos del usuario
             $usuario->name = $validated['name'];
             $usuario->email = $validated['email'];
             $usuario->rol = $validated['rol'];
+$usuario->estado = $validated['estado'];
 
             // Actualizar contraseña SOLO si se proporcionó una nueva
             if ($request->filled('password') && !empty($request->password)) {
@@ -110,25 +113,37 @@ class UserAdminController extends Controller
     }
 
     public function eliminar($id)
-    {
-        // No permitir borrar al usuario principal ID 1
-        if ($id == 1) {
-            return redirect()->route('usuarios.index')
-                           ->with('error', 'El usuario administrador principal no puede ser eliminado.');
-        }
-
-        try {
-            // Eliminar perfil asociado
-            PerfilEmpleado::where('user_id', $id)->delete();
-
-            // Eliminar usuario
-            User::destroy($id);
-
-            return redirect()->route('usuarios.index')
-                             ->with('success', 'Usuario y perfil eliminados correctamente.');
-        } catch (\Exception $e) {
-            return redirect()->route('usuarios.index')
-                             ->with('error', 'No se pudo eliminar el usuario.');
-        }
+{
+    // No permitir borrar al usuario principal ID 1
+    if ($id == 1) {
+        return redirect()->route('usuarios.index')
+                       ->with('error', 'El usuario administrador principal no puede ser eliminado.');
     }
+
+    try {
+        // 🔹 Reasignar proyectos donde era responsable
+        \App\Models\Project::where('responsable_id', $id)->update([
+            'responsable_id' => 1
+        ]);
+
+        // 🔹 Reasignar proyectos donde era creador (opcional)
+        \App\Models\Project::where('creado_por', $id)->update([
+            'creado_por' => 1
+        ]);
+
+        // 🔹 Eliminar perfil asociado
+        PerfilEmpleado::where('user_id', $id)->delete();
+
+        // 🔹 Eliminar usuario
+        User::destroy($id);
+
+        return redirect()->route('usuarios.index')
+                         ->with('success', 'Usuario eliminado y proyectos reasignados correctamente.');
+
+    } catch (\Exception $e) {
+        return redirect()->route('usuarios.index')
+                         ->with('error', 'No se pudo eliminar el usuario.');
+    }
+}
+
 }

@@ -88,11 +88,11 @@
                                     <span class="badge bg-success rounded-pill">Próximamente</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="#" class="text-decoration-none">
-                                        <i class="bi bi-folder"></i> Proyectos
-                                    </a>
-                                    <span class="badge bg-warning rounded-pill">Próximamente</span>
-                                </li>
+        <a href="{{ route('proyectos.index') }}" class="text-decoration-none">
+            <i class="bi bi-folder2-open"></i> Lista de Proyectos
+        </a>
+        <span class="badge bg-primary rounded-pill">Admin</span>
+    </li>
 
                             @elseif(Auth::user()->rol === 'supervisor')
                                 <li class="list-group-item">

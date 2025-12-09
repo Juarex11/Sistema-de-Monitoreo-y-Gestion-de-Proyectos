@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserDocumentController;
 use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\ProjectController;
 // Página principal
 Route::get('/', function () {
     return view('home');
@@ -46,7 +47,7 @@ Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store
             Route::get('/usuarios', [UserAdminController::class, 'index'])->name('usuarios.index');
             
             // CREAR USUARIO
-
+ Route::post('/generar-qr', [UserDocumentController::class, 'generarQr'])->name('generar.qr');
               Route::post('/usuarios/documentos', [UserDocumentController::class, 'store'])->name('usuarios.documentos.store');
     Route::delete('/usuarios/documentos/{document}', [UserDocumentController::class, 'destroy'])->name('usuarios.documentos.destroy');
     
@@ -61,6 +62,14 @@ Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store
 
             // VERIFICAR EMAIL (AJAX)
             Route::post('/usuarios/check-email', [UserAdminController::class, 'checkEmail'])->name('usuarios.check-email');
+
+
+            Route::get('/proyectos', [ProjectController::class, 'index'])->name('proyectos.index');
+    Route::get('/proyectos/crear', [ProjectController::class, 'create'])->name('proyectos.create');
+    Route::post('/proyectos', [ProjectController::class, 'store'])->name('proyectos.store');
+    // Eliminar proyecto
+Route::delete('/proyectos/{proyecto}', [ProjectController::class, 'destroy'])
+    ->name('proyectos.destroy');
 });
 
 });
