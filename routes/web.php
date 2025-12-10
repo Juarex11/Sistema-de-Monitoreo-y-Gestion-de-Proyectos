@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserDocumentController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TareaController;
 // Página principal
 Route::get('/', function () {
     return view('home');
@@ -63,6 +64,12 @@ Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store
             // VERIFICAR EMAIL (AJAX)
             Route::post('/usuarios/check-email', [UserAdminController::class, 'checkEmail'])->name('usuarios.check-email');
 
+                // TAREAS
+Route::post('/tareas', [TareaController::class, 'store'])->name('tareas.store');
+Route::put('/tareas/{id}/estado', [TareaController::class, 'updateEstado'])->name('tareas.updateEstado');
+Route::delete('/tareas/{id}', [TareaController::class, 'destroy'])->name('tareas.destroy');
+Route::put('/tareas/{id}', [TareaController::class, 'update'])->name('tareas.update');
+
 
             Route::get('/proyectos', [ProjectController::class, 'index'])->name('proyectos.index');
     Route::get('/proyectos/crear', [ProjectController::class, 'create'])->name('proyectos.create');
@@ -70,6 +77,11 @@ Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store
     // Eliminar proyecto
 Route::delete('/proyectos/{proyecto}', [ProjectController::class, 'destroy'])
     ->name('proyectos.destroy');
+Route::get('/proyectos/{id}/data', [ProjectController::class, 'showData'])
+    ->name('proyectos.data');
+
+Route::put('/proyectos/{id}', [ProjectController::class, 'update'])
+    ->name('proyectos.update');
 });
 
 });
