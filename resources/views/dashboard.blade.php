@@ -93,6 +93,12 @@
         </a>
         <span class="badge bg-primary rounded-pill">Admin</span>
     </li>
+<li class="list-group-item d-flex justify-content-between align-items-center">
+    <a href="{{ route('clientes.index') }}" class="text-decoration-none">
+        <i class="bi bi-people-fill"></i> Lista de Clientes
+    </a>
+    <span class="badge bg-primary rounded-pill">Admin</span>
+</li>
 
                             @elseif(Auth::user()->rol === 'supervisor')
                                 <li class="list-group-item">

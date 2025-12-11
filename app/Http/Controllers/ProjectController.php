@@ -8,11 +8,19 @@ use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
-    public function index()
-    {
-        $proyectos = Project::with('tareas')->latest()->get();
-        return view('proyectos.index', compact('proyectos'));
+public function index()
+{
+    $proyectos = Project::with('tareas')->latest()->get();
+
+    foreach ($proyectos as $p) {
+        $total = $p->tareas->count();
+        $completadas = $p->tareas->where('estado', 'completada')->count(); // ← aquí
+        $p->avance = $total > 0 ? round(($completadas / $total) * 100) : 0;
     }
+
+    return view('proyectos.index', compact('proyectos'));
+}
+
 
 public function create()
 {
@@ -22,9 +30,10 @@ public function create()
 }
 public function showData($id)
 {
-    $proyecto = Project::with('responsable')->findOrFail($id);
+    $proyecto = Project::with('responsable', 'creador', 'actualizador')->findOrFail($id);
     return response()->json($proyecto);
 }
+
     public function store(Request $request)
 {
     $request->validate([

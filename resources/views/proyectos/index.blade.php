@@ -9,18 +9,80 @@
             <i class="bi bi-plus-circle"></i> Nuevo Proyecto
         </a>
     </div>
-
+<input type="text" id="buscador" class="form-control mb-3" placeholder="Buscar proyectos...">
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
 @foreach($proyectos as $p)
-                        <div class="card shadow mb-3">
-                            <div class="card-body">
-                                <h5>{{ $p->nombre_proyecto }}</h5>
-                                <p>{{ $p->descripcion }}</p>
+                        <div class="card shadow mb-3 proyecto-card" data-nombre="{{ $p->nombre_proyecto }}">
 
-                                <p><strong>Responsable:</strong> {{ $p->responsable->name ?? 'Sin responsable asignado' }}</p>
+                            <div class="card-body">
+                                   <h5 class="card-title d-flex justify-content-between align-items-center">
+    {{ $p->nombre_proyecto }}
+
+    <small class="text-muted">
+        {{ $p->avance }}%
+    </small>
+</h5>
+
+<div class="progress mb-3" style="height: 8px;">
+    <div class="progress-bar 
+        @if($p->avance < 40) bg-danger
+        @elseif($p->avance < 70) bg-warning
+        @else bg-success
+        @endif"
+        role="progressbar"
+        style="width: {{ $p->avance }}%;">
+    </div>
+</div>
+
+
+            <p class="card-text text-muted mb-3">
+                {{ $p->descripcion }}
+            </p>
+
+
+                               <div class="row mb-3">
+
+                <div class="col-md-6 mb-2">
+                    <span class="fw-bold">Estado:</span>
+                    <span class="badge bg-primary">
+                        {{ ucfirst($p->estado) }}
+                    </span>
+                </div>
+
+                <div class="col-md-6 mb-2">
+                    <span class="fw-bold">Prioridad:</span>
+                    <span class="badge bg-danger">
+                        {{ ucfirst($p->prioridad ?? '—') }}
+                    </span>
+                </div>
+
+                <div class="col-md-6 mb-2">
+                    <span class="fw-bold">Fecha inicio:</span>
+                    {{ $p->fecha_inicio ?? '—' }}
+                </div>
+
+                <div class="col-md-6 mb-2">
+
+    <span class="fw-bold">Presupuesto asignado:</span>
+    S/ {{ number_format($p->presupuesto_asignado ?? 0, 2) }}
+    <br>
+
+    <span class="fw-bold">Presupuesto ejecutado:</span>
+    S/ {{ number_format($p->presupuesto_ejecutado ?? 0, 2) }}
+    <br>
+
+    <span class="fw-bold text-primary">Total presupuesto:</span>
+    <span class="text-primary">
+        S/ {{ number_format(($p->presupuesto_asignado ?? 0) + ($p->presupuesto_ejecutado ?? 0), 2) }}
+    </span>
+
+</div>
+
+
+            </div>
 <div class="d-flex gap-2 mb-2">
 
 <button 
@@ -36,79 +98,135 @@
 </div>
 
                                 <hr>
-                                <h6><i class="bi bi-list-check"></i> Checklist de Tareas</h6>
+                                <div class="accordion mb-3" id="accordion-{{ $p->id }}">
 
-                                <ul class="list-group mb-3">
-                                    @foreach($p->tareas as $t)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
+    {{-- ACCORDION: TAREAS --}}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#tareas-{{ $p->id }}">
+                <i class="bi bi-list-check me-2"></i> Checklist de Tareas
+            </button>
+        </h2>
 
-                        {{-- Cambiar estado --}}
-                        <form action="{{ route('tareas.updateEstado', $t->id) }}" method="POST" class="d-flex align-items-center w-auto me-3">
-                            @csrf
-                            @method('PUT')
+        <div id="tareas-{{ $p->id }}" class="accordion-collapse collapse">
+            <div class="accordion-body">
 
-                            <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="pendiente" {{ $t->estado === 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                                <option value="en_progreso" {{ $t->estado === 'en_progreso' ? 'selected' : '' }}>En progreso</option>
-                                <option value="completada" {{ $t->estado === 'completada' ? 'selected' : '' }}>Completada</option>
-                            </select>
-                        </form>
-
-                        <div class="flex-grow-1">
-
-                            {{-- EDITAR TÍTULO Y DESCRIPCIÓN --}}
-                            <form action="{{ route('tareas.update', $t->id) }}" method="POST" class="w-100">
+                <ul class="list-group mb-3">
+                    @foreach($p->tareas as $t)
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{-- Cambiar estado --}}
+                            <form action="{{ route('tareas.updateEstado', $t->id) }}" 
+                                  method="POST" class="d-flex align-items-center me-3">
                                 @csrf
                                 @method('PUT')
-
-                                <input 
-                                    type="text" 
-                                    name="titulo"
-                                    class="form-control form-control-sm mb-1"
-                                    value="{{ $t->titulo }}"
-                                    onchange="this.form.submit()"
-                                >
-
-                                <input 
-                                    type="text" 
-                                    name="descripcion"
-                                    class="form-control form-control-sm text-muted"
-                                    value="{{ $t->descripcion }}"
-                                    placeholder="Descripción (opcional)"
-                                    onchange="this.form.submit()"
-                                >
+                                <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="pendiente" {{ $t->estado === 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                                    <option value="en_progreso" {{ $t->estado === 'en_progreso' ? 'selected' : '' }}>En progreso</option>
+                                    <option value="completada" {{ $t->estado === 'completada' ? 'selected' : '' }}>Completada</option>
+                                </select>
                             </form>
 
-                        </div>
+                            <div class="flex-grow-1">
+                                <form action="{{ route('tareas.update', $t->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="text" name="titulo" class="form-control form-control-sm mb-1"
+                                           value="{{ $t->titulo }}" onchange="this.form.submit()">
+                                    <input type="text" name="descripcion" class="form-control form-control-sm text-muted"
+                                           value="{{ $t->descripcion }}" onchange="this.form.submit()">
+                                </form>
+                            </div>
 
-                        {{-- Botón eliminar --}}
-                        <form action="{{ route('tareas.destroy', $t->id) }}" method="POST" onsubmit="return confirm('¿Eliminar tarea?');">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger ms-2">
-                                <i class="bi bi-x-circle"></i>
-                            </button>
-                        </form>
+                            <form action="{{ route('tareas.destroy', $t->id) }}" method="POST" 
+                                  onsubmit="return confirm('¿Eliminar tarea?');">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
 
-                    </li>
+                {{-- Nueva Tarea --}}
+                <form action="{{ route('tareas.store') }}" method="POST" class="d-flex mb-3 gap-2">
+                    @csrf
+                    <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
+                    <input type="text" name="titulo" class="form-control" placeholder="Título de la tarea" required>
+                    <input type="text" name="descripcion" class="form-control" placeholder="Descripción (opcional)">
+                    <button class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </form>
 
+            </div>
+        </div>
+    </div>
 
-                @endforeach
-            </ul>
+    {{-- ACCORDION: PRESUPUESTOS --}}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#pres-{{ $p->id }}">
+                <i class="bi bi-cash-coin me-2"></i> Presupuestos
+            </button>
+        </h2>
 
-            {{-- Agregar nueva tarea --}}
-            <form action="{{ route('tareas.store') }}" method="POST" class="d-flex mb-3">
-                @csrf
-                <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
-<div class="d-flex gap-2 w-100">
-    <input type="text" name="titulo" class="form-control" placeholder="Título de la tarea" required>
-    <input type="text" name="descripcion" class="form-control" placeholder="Descripción (opcional)">
-    <button class="btn btn-success">
-        <i class="bi bi-plus-circle"></i>
-    </button>
+        <div id="pres-{{ $p->id }}" class="accordion-collapse collapse">
+            <div class="accordion-body">
+
+                @php
+                    $total = $p->presupuestos->sum('precio');
+                @endphp
+
+                <ul class="list-group mb-3">
+                    @foreach($p->presupuestos as $pres)
+                        <li class="list-group-item d-flex justify-content-between">
+                            <div>
+                                <strong>{{ $pres->nombre }}</strong><br>
+                                <span class="text-muted">S/ {{ number_format($pres->precio, 2) }}</span>
+                            </div>
+
+                            <form action="{{ route('presupuestos.destroy', $pres->id) }}" 
+                                  method="POST" onsubmit="return confirm('¿Eliminar presupuesto?');">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+
+                <div class="alert alert-primary d-flex justify-content-between">
+                    <strong>Total:</strong>
+                    <span>S/ {{ number_format($total, 2) }}</span>
+                </div>
+
+                {{-- Nuevo presupuesto --}}
+                <form action="{{ route('presupuestos.store') }}" method="POST" class="d-flex gap-2">
+                    @csrf
+                    <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
+                    <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+                    <input type="number" step="0.01" name="precio" class="form-control" placeholder="Precio" required>
+                    <button class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
-            </form>
+                           
+    
 
             <div class="d-flex justify-content-end">
                 <form action="{{ route('proyectos.destroy', $p->id) }}" method="POST" onsubmit="return confirm('¿Desea eliminar este proyecto?');">
@@ -205,10 +323,11 @@
             <input type="number" id="presupuesto_asignado" name="presupuesto_asignado" class="form-control">
         </div>
 
-        <div class="col-md-4">
-            <label>Presupuesto Ejecutado</label>
-            <input type="number" id="presupuesto_ejecutado" name="presupuesto_ejecutado" class="form-control">
-        </div>
+     <div class="col-md-4">
+    <label>Presupuesto Ejecutado</label>
+    <input type="number" id="presupuesto_ejecutado" name="presupuesto_ejecutado" 
+           class="form-control" readonly>
+</div>
 
         <!-- lugar -->
         <div class="col-md-6">
@@ -255,6 +374,13 @@
 </div>
 
 <script>
+    document.getElementById('buscador').addEventListener('input', function() {
+    const texto = this.value.toLowerCase();
+    document.querySelectorAll('.proyecto-card').forEach(card => {
+        const nombre = card.dataset.nombre.toLowerCase();
+        card.style.display = nombre.includes(texto) ? '' : 'none';
+    });
+});
 function cargarProyecto(id) {
     fetch(`/proyectos/${id}/data`)
         .then(res => res.json())
@@ -282,8 +408,9 @@ function cargarProyecto(id) {
             document.getElementById('tipo_proyecto').value = p.tipo_proyecto ?? "";
             document.getElementById('prioridad').value = p.prioridad ?? "";
 
-            document.getElementById('creado_por').value = p.creado_por;
-            document.getElementById('actualizado_por').value = p.actualizado_por ?? "";
+           document.getElementById('creado_por').value = p.creador ? p.creador.name : "";
+document.getElementById('actualizado_por').value = p.actualizador ? p.actualizador.name : "";
+
         });
 }
 

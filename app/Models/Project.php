@@ -34,6 +34,26 @@ class Project extends Model
     {
         return $this->hasMany(ProjectTask::class, 'proyecto_id');
     }
+    public function creador()
+{
+    return $this->belongsTo(\App\Models\User::class, 'creado_por');
+}
+public function presupuestos()
+{
+    return $this->hasMany(Presupuesto::class, 'proyecto_id');
+}
+
+/* Cálculo automático del total */
+public function getTotalPresupuestoEjecutadoAttribute()
+{
+    return $this->presupuestos->sum('precio');
+}
+
+public function actualizador()
+{
+    return $this->belongsTo(\App\Models\User::class, 'actualizado_por');
+}
+
     public function responsable()
 {
     return $this->belongsTo(User::class, 'responsable_id');

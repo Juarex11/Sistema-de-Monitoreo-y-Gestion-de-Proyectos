@@ -23,7 +23,7 @@ class TareaController extends Controller
   public function updateEstado(Request $request, $id)
 {
     $request->validate([
-        'estado' => 'required|in:pendiente,en_progreso,completa'
+        'estado' => 'required|in:pendiente,en_progreso,completada'
     ]);
 
     $tarea = Tarea::findOrFail($id);
