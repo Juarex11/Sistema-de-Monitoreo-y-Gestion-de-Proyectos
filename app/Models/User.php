@@ -62,4 +62,28 @@ public function documents()
             'password' => 'hashed',
         ];
     }
+
+    public function equipos()
+    {
+        return $this->belongsToMany(Equipo::class, 'equipo_user')
+                    ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
+                    ->withTimestamps()
+                    ->where('equipo_user.activo', true);
+    }
+
+    // Equipos donde es líder
+    public function equiposLiderados()
+    {
+        return $this->belongsToMany(Equipo::class, 'equipo_user')
+                    ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
+                    ->withTimestamps()
+                    ->where('equipo_user.rol_equipo', 'lider')
+                    ->where('equipo_user.activo', true);
+    }
+
+    // Verificar si puede ser líder (admin o supervisor)
+    public function puedeSeLider()
+    {
+        return in_array($this->rol, ['administrador', 'supervisor']);
+    }
 }

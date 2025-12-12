@@ -1,11 +1,13 @@
 <?php
 namespace App\Http\Controllers;
-
+use App\Models\DocumentoProyecto;
+use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\DB; 
 use App\Models\Project;
+use App\Models\Cotizacion;
 use App\Models\ProjectTask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
 class ProjectController extends Controller
 {
 public function index()
@@ -163,5 +165,118 @@ public function destroy(Project $proyecto)
             ->with('error', 'No se pudo eliminar el proyecto.');
     }
 }
+
+public function addCotizacion(Request $request, Project $proyecto)
+    {
+        $request->validate([
+            'cotizacion_id' => 'required|exists:cotizaciones,id'
+        ]);
+
+        // Verificar que no esté ya asociada
+        if ($proyecto->cotizaciones()->where('cotizacion_id', $request->cotizacion_id)->exists()) {
+            return back()->with('error', 'Esta cotización ya está asociada al proyecto');
+        }
+
+        // Asociar la cotización al proyecto
+        $proyecto->cotizaciones()->attach($request->cotizacion_id);
+
+        return back()->with('success', 'Cotización agregada al proyecto correctamente');
+    }
+
+    /**
+     * Subir documento al proyecto
+     */
+public function subirDocumento(Request $request, Project $proyecto)
+    {
+        $request->validate([
+            'archivo' => 'required|file|max:10240',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+        ]);
+
+        $archivo = $request->file('archivo');
+        $extension = $archivo->getClientOriginalExtension();
+        $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
+        
+        $ruta = $archivo->storeAs('archivos_proyecto', $nombreArchivo, 'public');
+
+        $documento = $proyecto->documentos()->create([
+            'nombre' => $request->nombre,
+            'descripcion' => $request->descripcion,
+            'ruta' => $ruta,
+            'tipo' => DocumentoProyecto::determinarTipo($extension),
+            'extension' => $extension,
+            'tamanio' => $archivo->getSize(),
+            'subido_por' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Documento subido correctamente');
+    }
+
+    /**
+     * Actualizar documento
+     */
+    public function actualizarDocumento(Request $request, DocumentoProyecto $documento)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'archivo' => 'nullable|file|max:10240',
+        ]);
+
+        $datos = [
+            'nombre' => $request->nombre,
+            'descripcion' => $request->descripcion,
+        ];
+
+        // Si hay nuevo archivo, reemplazar
+        if ($request->hasFile('archivo')) {
+            // Eliminar archivo anterior
+            if (Storage::disk('public')->exists($documento->ruta)) {
+                Storage::disk('public')->delete($documento->ruta);
+            }
+
+            $archivo = $request->file('archivo');
+            $extension = $archivo->getClientOriginalExtension();
+            $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
+            
+            $ruta = $archivo->storeAs('archivos_proyecto', $nombreArchivo, 'public');
+
+            $datos['ruta'] = $ruta;
+            $datos['tipo'] = DocumentoProyecto::determinarTipo($extension);
+            $datos['extension'] = $extension;
+            $datos['tamanio'] = $archivo->getSize();
+        }
+
+        $documento->update($datos);
+
+        return back()->with('success', 'Documento actualizado correctamente');
+    }
+
+    /**
+     * Eliminar documento
+     */
+    public function eliminarDocumento(DocumentoProyecto $documento)
+    {
+        // Eliminar archivo físico
+        if (Storage::disk('public')->exists($documento->ruta)) {
+            Storage::disk('public')->delete($documento->ruta);
+        }
+
+        $documento->delete();
+
+        return back()->with('success', 'Documento eliminado correctamente');
+    }
+
+/**
+     * Remover una cotización del proyecto
+     */
+    public function removeCotizacion(Project $proyecto, Cotizacion $cotizacion)
+    {
+        $proyecto->cotizaciones()->detach($cotizacion->id);
+
+        return back()->with('success', 'Cotización removida del proyecto');
+    }
+
 
 }

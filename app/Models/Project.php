@@ -67,5 +67,32 @@ public function actualizador()
 {
     return $this->belongsTo(User::class, 'responsable_id');
 }
+// ✨ NUEVA RELACIÓN: Cotizaciones
+    public function cotizaciones()
+    {
+        return $this->belongsToMany(
+            Cotizacion::class,
+            'cotizacion_proyecto',
+            'proyecto_id',
+            'cotizacion_id'
+        )->withTimestamps();
+    }
 
+  public function documentos()
+    {
+        return $this->hasMany(DocumentoProyecto::class, 'proyecto_id');
+    }
+
+    public function equipos()
+{
+    return $this->hasMany(Equipo::class, 'proyecto_id');
+}
+
+public function equiposAdicionales()
+{
+    return $this->belongsToMany(Equipo::class, 'equipo_proyecto')
+                ->withTimestamps()
+                ->withPivot('fecha_asignacion');
+}
+    
 }

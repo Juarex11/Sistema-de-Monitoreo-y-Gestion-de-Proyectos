@@ -68,6 +68,19 @@
                         <ul class="list-group">
 
                             @if(Auth::user()->rol === 'administrador')
+                             <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ route('cotizaciones.index') }}" class="text-decoration-none">
+            <i class="bi bi-file-earmark-text"></i> Lista de Cotizaciones
+        </a>
+        <span class="badge bg-primary rounded-pill">Admin</span>
+    </li>
+
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ route('cotizaciones.create') }}" class="text-decoration-none">
+            <i class="bi bi-plus-circle"></i> Nueva Cotización
+        </a>
+        <span class="badge bg-primary rounded-pill">Admin</span>
+    </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <a href="{{ route('usuarios.index') }}" class="text-decoration-none">
                                         <i class="bi bi-people"></i> Lista de Usuarios
@@ -99,7 +112,12 @@
     </a>
     <span class="badge bg-primary rounded-pill">Admin</span>
 </li>
-
+<li class="list-group-item d-flex justify-content-between align-items-center">
+    <a href="{{ route('equipos.index') }}" class="text-decoration-none">
+        <i class="bi bi-people-fill"></i> Equipos de Trabajo
+    </a>
+    <span class="badge bg-primary rounded-pill">Admin</span>
+</li>
                             @elseif(Auth::user()->rol === 'supervisor')
                                 <li class="list-group-item">
                                     <a href="#" class="text-decoration-none">

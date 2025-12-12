@@ -422,7 +422,357 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
     </div>
+{{-- Agregar este nuevo accordion DESPUÉS del accordion de PRESUPUESTOS --}}
 
+{{-- ACCORDION: COTIZACIONES --}}
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#cotizaciones-{{ $p->id }}">
+            <i class="bi bi-file-earmark-text me-2"></i> Cotizaciones
+            <span class="badge bg-primary ms-2">{{ $p->cotizaciones->count() }}</span>
+        </button>
+    </h2>
+    <div id="cotizaciones-{{ $p->id }}" class="accordion-collapse collapse">
+        <div class="accordion-body">
+            {{-- Lista de cotizaciones asociadas --}}
+            <ul class="list-group mb-3">
+                @forelse($p->cotizaciones as $cotizacion)
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <strong>{{ $cotizacion->codigo }}</strong>
+                                <span class="badge bg-{{ $cotizacion->estado == 'aprobada' ? 'success' : ($cotizacion->estado == 'rechazada' ? 'danger' : 'secondary') }}">
+                                    {{ ucfirst($cotizacion->estado) }}
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-1">
+                                <i class="bi bi-person"></i> 
+                                {{ $cotizacion->cliente->nombre_comercial ?? $cotizacion->cliente->name }}
+                            </div>
+                            <div class="text-muted small mb-1">
+                                <i class="bi bi-calendar"></i> 
+                                {{ $cotizacion->created_at->format('d/m/Y') }}
+                            </div>
+                            @if($cotizacion->descripcion)
+                            <div class="text-muted small mb-2">
+                                {{ Str::limit($cotizacion->descripcion, 80) }}
+                            </div>
+                            @endif
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="badge bg-info">
+                                    {{ $cotizacion->items->count() }} items
+                                </span>
+                                <strong class="text-primary">
+                                    S/ {{ number_format($cotizacion->total, 2) }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ route('cotizaciones.show', $cotizacion->id) }}" 
+                               class="btn btn-sm btn-info" 
+                               title="Ver cotización">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ route('cotizaciones.pdf', $cotizacion->id) }}" 
+                               class="btn btn-sm btn-danger" 
+                               title="Descargar PDF">
+                                <i class="bi bi-file-pdf"></i>
+                            </a>
+                            <form action="{{ route('proyectos.removeCotizacion', [$p->id, $cotizacion->id]) }}" 
+                                  method="POST" 
+                                  onsubmit="return confirm('¿Desvincular esta cotización del proyecto?');">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger" title="Desvincular">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+                @empty
+                <li class="list-group-item text-center text-muted">
+                    <i class="bi bi-inbox"></i> No hay cotizaciones asociadas
+                </li>
+                @endforelse
+            </ul>
+
+            {{-- Formulario para agregar cotización --}}
+            <form action="{{ route('proyectos.addCotizacion', $p->id) }}" method="POST">
+                @csrf
+                <div class="d-flex gap-2">
+                    <select name="cotizacion_id" class="form-select" required>
+                        <option value="">Seleccionar cotización...</option>
+                        @foreach(\App\Models\Cotizacion::with('cliente')
+                            ->whereNotIn('id', $p->cotizaciones->pluck('id'))
+                            ->orderBy('created_at', 'desc')
+                            ->get() as $cot)
+                            <option value="{{ $cot->id }}">
+                                {{ $cot->codigo }} - 
+                                {{ $cot->cliente->nombre_comercial ?? $cot->cliente->name }} - 
+                                S/ {{ number_format($cot->total, 2) }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{-- ACCORDION: DOCUMENTOS --}}
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#documentos-{{ $p->id }}">
+            <i class="bi bi-folder2-open me-2"></i> Documentos
+            <span class="badge bg-info ms-2">{{ $p->documentos->count() }}</span>
+        </button>
+    </h2>
+    <div id="documentos-{{ $p->id }}" class="accordion-collapse collapse">
+        <div class="accordion-body">
+            
+            {{-- Carrusel de Documentos --}}
+            @if($p->documentos->count() > 0)
+            <div id="carouselDocs-{{ $p->id }}" class="carousel slide mb-3" data-bs-ride="false">
+                <div class="carousel-inner">
+                    @foreach($p->documentos as $index => $doc)
+                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    {{-- Preview del documento --}}
+                                    <div class="col-md-4 text-center">
+                                        @if($doc->esImagen())
+                                            <img src="{{ asset('storage/' . $doc->ruta) }}" 
+                                                 class="img-fluid rounded shadow-sm" 
+                                                 alt="{{ $doc->nombre }}"
+                                                 style="max-height: 200px; object-fit: cover;">
+                                        @else
+                                            <div class="document-preview">
+                                                <i class="bi {{ $doc->getIcono() }} display-1 text-{{ $doc->getColorBadge() }}"></i>
+                                                <p class="mt-2 mb-0">
+                                                    <span class="badge bg-{{ $doc->getColorBadge() }}">
+                                                        {{ strtoupper($doc->extension) }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Información del documento --}}
+                                    <div class="col-md-8">
+                                        <h5 class="card-title">{{ $doc->nombre }}</h5>
+                                        
+                                        @if($doc->descripcion)
+                                        <p class="card-text text-muted">{{ $doc->descripcion }}</p>
+                                        @endif
+
+                                        <div class="document-info">
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-file-earmark"></i> Tipo: 
+                                                <span class="badge bg-{{ $doc->getColorBadge() }}">{{ ucfirst($doc->tipo) }}</span>
+                                            </small>
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-hdd"></i> Tamaño: {{ $doc->tamanio_formateado }}
+                                            </small>
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-calendar"></i> Subido: {{ $doc->created_at->format('d/m/Y H:i') }}
+                                            </small>
+                                            @if($doc->usuario)
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-person"></i> Por: {{ $doc->usuario->name }}
+                                            </small>
+                                            @endif
+                                        </div>
+
+                                        {{-- Acciones --}}
+                                        <div class="mt-3 d-flex gap-2">
+                                            <a href="{{ asset('storage/' . $doc->ruta) }}" 
+                                               target="_blank" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="bi bi-download"></i> Descargar
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-warning" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalEditarDoc-{{ $doc->id }}">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </button>
+                                            <form action="{{ route('documentos.eliminar', $doc->id) }}" 
+                                                  method="POST" 
+                                                  onsubmit="return confirm('¿Eliminar este documento?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="bi bi-trash"></i> Eliminar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Modal para editar documento --}}
+                    <div class="modal fade" id="modalEditarDoc-{{ $doc->id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <form action="{{ route('documentos.actualizar', $doc->id) }}" 
+                                  method="POST" 
+                                  enctype="multipart/form-data" 
+                                  class="modal-content">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Editar Documento</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre *</label>
+                                        <input type="text" name="nombre" class="form-control" 
+                                               value="{{ $doc->nombre }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Descripción</label>
+                                        <textarea name="descripcion" class="form-control" rows="3">{{ $doc->descripcion }}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Reemplazar archivo (opcional)</label>
+                                        <input type="file" name="archivo" class="form-control">
+                                        <small class="text-muted">Dejar vacío para mantener el archivo actual</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        Guardar Cambios
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                {{-- Controles del carrusel --}}
+                @if($p->documentos->count() > 1)
+                <button class="carousel-control-prev" type="button" 
+                        data-bs-target="#carouselDocs-{{ $p->id }}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" 
+                        data-bs-target="#carouselDocs-{{ $p->id }}" data-bs-slide="next">
+                    <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+                    <span class="visually-hidden">Siguiente</span>
+                </button>
+
+                {{-- Indicadores --}}
+                <div class="carousel-indicators">
+                    @foreach($p->documentos as $index => $doc)
+                    <button type="button" 
+                            data-bs-target="#carouselDocs-{{ $p->id }}" 
+                            data-bs-slide-to="{{ $index }}" 
+                            class="{{ $index === 0 ? 'active' : '' }}">
+                    </button>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+            @else
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No hay documentos subidos
+            </div>
+            @endif
+
+            {{-- Formulario para subir nuevo documento --}}
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-cloud-upload"></i> Subir Nuevo Documento
+                    </h6>
+                    <form action="{{ route('proyectos.subirDocumento', $p->id) }}" 
+                          method="POST" 
+                          enctype="multipart/form-data">
+                        @csrf
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <input type="text" name="nombre" class="form-control" 
+                                       placeholder="Nombre del documento" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" name="descripcion" class="form-control" 
+                                       placeholder="Descripción (opcional)">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="file" name="archivo" class="form-control" required>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-upload"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            Formatos: JPG, PNG, PDF, DOCX, XLSX, TXT (Máx. 10MB)
+                        </small>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.document-preview {
+    padding: 30px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.document-info small {
+    margin-bottom: 5px;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    filter: invert(1);
+}
+
+.carousel-indicators {
+    position: relative;
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
+.carousel-indicators button {
+    background-color: #6c757d;
+}
+</style>
+<style>
+.list-group-item {
+    transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
 </div>
 
                            

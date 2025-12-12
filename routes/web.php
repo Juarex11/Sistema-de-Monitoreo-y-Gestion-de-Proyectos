@@ -12,6 +12,8 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\CotizacionController;
+use App\Http\Controllers\EquipoController;
 /*
 |--------------------------------------------------------------------------
 | PÚBLICAS
@@ -112,8 +114,16 @@ Route::middleware('auth')->group(function () {
 
         Route::delete('/proyectos/{proyecto}', [ProjectController::class, 'destroy'])
             ->name('proyectos.destroy');
-
-
+// Agregar estas rutas
+Route::post('proyectos/{proyecto}/addCotizacion', [ProjectController::class, 'addCotizacion'])->name('proyectos.addCotizacion');
+Route::delete('proyectos/{proyecto}/removeCotizacion/{cotizacion}', [ProjectController::class, 'removeCotizacion'])->name('proyectos.removeCotizacion');
+// Rutas para documentos de proyectos
+Route::post('proyectos/{proyecto}/subirDocumento', [ProjectController::class, 'subirDocumento'])
+    ->name('proyectos.subirDocumento');
+Route::put('documentos/{documento}', [ProjectController::class, 'actualizarDocumento'])
+    ->name('documentos.actualizar');
+Route::delete('documentos/{documento}', [ProjectController::class, 'eliminarDocumento'])
+    ->name('documentos.eliminar');
         /* --------------------------- PRESUPUESTOS --------------------------- */
 
         Route::post('/presupuestos', [PresupuestoController::class, 'store'])
@@ -129,6 +139,11 @@ Route::post('/proyectos/add-cliente', [ProjectController::class, 'addCliente'])-
 Route::delete('/proyectos/{proyecto}/remove-cliente/{cliente}', [ProjectController::class, 'removeCliente'])->name('proyectos.removeCliente');
 
 
+// Rutas de Equipos
+Route::resource('equipos', EquipoController::class);
+Route::post('equipos/{equipo}/agregarMiembro', [EquipoController::class, 'agregarMiembro'])->name('equipos.agregarMiembro');
+Route::delete('equipos/{equipo}/removerMiembro/{user}', [EquipoController::class, 'removerMiembro'])->name('equipos.removerMiembro');
+Route::put('equipos/{equipo}/cambiarRol/{user}', [EquipoController::class, 'cambiarRol'])->name('equipos.cambiarRol');
             /* --------------------------- CLIENTES --------------------------- */
 
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
@@ -140,6 +155,26 @@ Route::delete('/proyectos/{proyecto}/remove-cliente/{cliente}', [ProjectControll
 // En routes/api.php o routes/web.php
 Route::get('/api/clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
         Route::delete('/clientes/{id}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+
+ /* --------------------------- COTIZACION --------------------------- */
+         Route::get('/cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');
+    Route::get('/cotizaciones/crear', [CotizacionController::class, 'create'])->name('cotizaciones.create');
+    Route::post('/cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
+    Route::get('/cotizaciones/{cotizacion}', [CotizacionController::class, 'show'])->name('cotizaciones.show');
+    Route::put('/cotizaciones/{cotizacion}/estado', [CotizacionController::class, 'updateEstado'])->name('cotizaciones.updateEstado');
+    Route::get('/cotizaciones/{cotizacion}/pdf', [CotizacionController::class, 'exportPdf'])->name('cotizaciones.pdf');
+Route::get('/cotizaciones/{id}', [CotizacionController::class, 'show'])
+    ->name('cotizaciones.show');
+Route::resource('cotizaciones', CotizacionController::class);
+// Actualizar un ítem
+Route::put('/cotizacion-items/{id}', [App\Http\Controllers\CotizacionController::class, 'updateItem'])
+    ->name('cotizacion_items.update');
+
+// Eliminar un ítem
+Route::delete('/cotizacion-items/{id}', [App\Http\Controllers\CotizacionController::class, 'deleteItem'])
+    ->name('cotizacion_items.destroy');
+Route::post('/cotizaciones/{id}/items', [CotizacionController::class, 'agregarItem'])
+    ->name('cotizaciones.items.agregar');
 
 
     });
