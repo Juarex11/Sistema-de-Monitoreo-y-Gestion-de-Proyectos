@@ -122,6 +122,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/presupuestos/{id}', [PresupuestoController::class, 'destroy'])
             ->name('presupuestos.destroy');
 
+// Agregar cliente a proyecto
+Route::post('/proyectos/add-cliente', [ProjectController::class, 'addCliente'])->name('proyectos.addCliente');
+
+// Quitar cliente de proyecto
+Route::delete('/proyectos/{proyecto}/remove-cliente/{cliente}', [ProjectController::class, 'removeCliente'])->name('proyectos.removeCliente');
+
 
             /* --------------------------- CLIENTES --------------------------- */
 
@@ -131,7 +137,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/clientes/{id}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
         Route::put('/clientes/{id}', [ClienteController::class, 'update'])->name('clientes.update');
-
+// En routes/api.php o routes/web.php
+Route::get('/api/clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
         Route::delete('/clientes/{id}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
 
 

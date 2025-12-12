@@ -15,17 +15,18 @@
     @endif
 
 @foreach($proyectos as $p)
-                        <div class="card shadow mb-3 proyecto-card" data-nombre="{{ $p->nombre_proyecto }}">
+                        <div class="card shadow mb-3 proyecto-card"   data-nombre="{{ $p->nombre_proyecto }}" 
+         data-codigo="{{ $p->codigo }}">
 
                             <div class="card-body">
                                    <h5 class="card-title d-flex justify-content-between align-items-center">
     {{ $p->nombre_proyecto }}
-
+  
     <small class="text-muted">
         {{ $p->avance }}%
     </small>
 </h5>
-
+<p>  {{ $p->codigo }}</p>
 <div class="progress mb-3" style="height: 8px;">
     <div class="progress-bar 
         @if($p->avance < 40) bg-danger
@@ -99,6 +100,205 @@
 
                                 <hr>
                                 <div class="accordion mb-3" id="accordion-{{ $p->id }}">
+{{-- ACCORDION: CLIENTES --}}
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" 
+            data-bs-toggle="collapse" 
+            data-bs-target="#clientes-{{ $p->id }}">
+            <i class="bi bi-people me-2"></i> Clientes
+        </button>
+    </h2>
+
+    <div id="clientes-{{ $p->id }}" class="accordion-collapse collapse">
+        <div class="accordion-body">
+
+            <ul class="list-group mb-3" id="lista-clientes-{{ $p->id }}">
+                @foreach($p->clientes as $c)
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ $c->nombre_comercial ?? $c->razon_social }}
+                        <form action="{{ route('proyectos.removeCliente', [$p->id, $c->id]) }}" method="POST" 
+                              onsubmit="return confirm('¿Eliminar cliente del proyecto?');">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    </li>
+                @endforeach
+            </ul>
+
+            {{-- Agregar nuevo cliente con buscador --}}
+            <form action="{{ route('proyectos.addCliente') }}" method="POST" id="form-add-cliente-{{ $p->id }}">
+                @csrf
+                <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
+                
+                <div class="d-flex gap-2">
+                    <div class="flex-grow-1 position-relative">
+                        {{-- Input de búsqueda --}}
+                        <input type="text" 
+                               class="form-control cliente-search" 
+                               id="search-cliente-{{ $p->id }}"
+                               placeholder="Buscar cliente por nombre, RUC o código..."
+                               autocomplete="off">
+                        
+                        {{-- Input oculto con el ID seleccionado --}}
+                        <input type="hidden" name="cliente_id" id="cliente-id-{{ $p->id }}" required>
+                        
+                        {{-- Resultados de búsqueda --}}
+                        <div class="search-results position-absolute w-100 bg-white border rounded shadow-sm" 
+                             id="results-{{ $p->id }}" 
+                             style="display: none; max-height: 300px; overflow-y: auto; z-index: 1000;">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.search-results {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: #f8f9fa;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.client-info {
+    font-size: 0.9rem;
+}
+
+.client-code {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.no-results {
+    padding: 15px;
+    text-align: center;
+    color: #6c757d;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función de búsqueda con debounce
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Configurar buscador para cada proyecto
+    const searchInput = document.getElementById('search-cliente-{{ $p->id }}');
+    const resultsDiv = document.getElementById('results-{{ $p->id }}');
+    const hiddenInput = document.getElementById('cliente-id-{{ $p->id }}');
+    const clientesAsignados = @json($p->clientes->pluck('id'));
+
+    if (searchInput) {
+        // Búsqueda con debounce
+        const buscarClientes = debounce(function(termino) {
+            if (termino.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            fetch(`/api/clientes/buscar?q=${encodeURIComponent(termino)}&excluir=${clientesAsignados.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    mostrarResultados(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsDiv.innerHTML = '<div class="no-results">Error al buscar clientes</div>';
+                    resultsDiv.style.display = 'block';
+                });
+        }, 300);
+
+        searchInput.addEventListener('input', function() {
+            buscarClientes(this.value);
+        });
+
+        // Mostrar resultados
+        function mostrarResultados(clientes) {
+            if (clientes.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No se encontraron clientes</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            let html = '';
+            clientes.forEach(cliente => {
+                html += `
+                    <div class="search-result-item" data-id="${cliente.id}" data-nombre="${cliente.nombre_comercial || cliente.razon_social}">
+                        <div class="fw-bold">${cliente.nombre_comercial || cliente.razon_social}</div>
+                        <div class="client-info">
+                            <span class="client-code">${cliente.codigo}</span>
+                            ${cliente.ruc_dni ? ` | RUC/DNI: ${cliente.ruc_dni}` : ''}
+                            ${cliente.ciudad ? ` | ${cliente.ciudad}` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+
+            // Agregar eventos de clic a cada resultado
+            resultsDiv.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const nombre = this.dataset.nombre;
+                    
+                    hiddenInput.value = id;
+                    searchInput.value = nombre;
+                    resultsDiv.style.display = 'none';
+                });
+            });
+        }
+
+        // Cerrar resultados al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.style.display = 'none';
+            }
+        });
+
+        // Limpiar al hacer focus
+        searchInput.addEventListener('focus', function() {
+            if (this.value.length >= 2) {
+                resultsDiv.style.display = 'block';
+            }
+        });
+    }
+});
+</script>
 
     {{-- ACCORDION: TAREAS --}}
     <div class="accordion-item">
@@ -374,13 +574,15 @@
 </div>
 
 <script>
-    document.getElementById('buscador').addEventListener('input', function() {
+document.getElementById('buscador').addEventListener('input', function() {
     const texto = this.value.toLowerCase();
     document.querySelectorAll('.proyecto-card').forEach(card => {
         const nombre = card.dataset.nombre.toLowerCase();
-        card.style.display = nombre.includes(texto) ? '' : 'none';
+        const codigo = card.dataset.codigo.toLowerCase();
+        card.style.display = (nombre.includes(texto) || codigo.includes(texto)) ? '' : 'none';
     });
 });
+
 function cargarProyecto(id) {
     fetch(`/proyectos/${id}/data`)
         .then(res => res.json())

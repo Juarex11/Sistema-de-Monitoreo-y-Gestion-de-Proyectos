@@ -24,5 +24,14 @@ class Cliente extends Model
     'creado_por',
     'actualizado_por'
 ];
-
+// app/Models/Cliente.php
+public function proyectos()
+{
+    return $this->belongsToMany(
+        Project::class,
+        'cliente_proyecto',  // nombre de la tabla pivote
+        'cliente_id',        // columna de cliente
+        'proyecto_id'        // columna de proyecto
+    );
+}
 }

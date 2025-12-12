@@ -84,6 +84,28 @@ public function showData($id)
     return redirect()->route('proyectos.index')
         ->with('success', 'Proyecto creado correctamente con sus tareas base.');
 }
+public function addCliente(Request $request)
+{
+ $request->validate([
+    'proyecto_id' => 'required|exists:proyectos,id', // en lugar de projects
+    'cliente_id' => 'required|exists:clientes,id',
+]);
+
+
+    $proyecto = Project::findOrFail($request->proyecto_id);
+    $proyecto->clientes()->syncWithoutDetaching($request->cliente_id);
+
+    return back()->with('success', 'Cliente agregado al proyecto.');
+}
+
+public function removeCliente($proyectoId, $clienteId)
+{
+    $proyecto = Project::findOrFail($proyectoId);
+    $proyecto->clientes()->detach($clienteId);
+
+    return back()->with('success', 'Cliente removido del proyecto.');
+}
+
 public function update(Request $request, $id)
 {
     $request->validate([

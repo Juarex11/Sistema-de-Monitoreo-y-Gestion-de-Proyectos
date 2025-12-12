@@ -42,7 +42,16 @@ public function presupuestos()
 {
     return $this->hasMany(Presupuesto::class, 'proyecto_id');
 }
-
+// app/Models/Project.php
+public function clientes()
+{
+    return $this->belongsToMany(
+        Cliente::class,
+        'cliente_proyecto',
+        'proyecto_id',
+        'cliente_id'
+    );
+}
 /* Cálculo automático del total */
 public function getTotalPresupuestoEjecutadoAttribute()
 {

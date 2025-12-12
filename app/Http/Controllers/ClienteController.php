@@ -7,12 +7,44 @@ use Illuminate\Support\Facades\Auth;
 
 class ClienteController extends Controller
 {
-    public function index()
+
+    /**
+     * Búsqueda de clientes para AJAX
+     */
+    public function buscar(Request $request)
     {
-        $clientes = Cliente::orderBy('id', 'DESC')->get();
+        $termino = $request->get('q', '');
+        $excluir = $request->get('excluir', '');
+        
+        // Convertir IDs excluidos a array
+        $idsExcluir = $excluir ? explode(',', $excluir) : [];
+
+        $clientes = Cliente::where(function($query) use ($termino) {
+                $query->where('nombre_comercial', 'LIKE', "%{$termino}%")
+                      ->orWhere('razon_social', 'LIKE', "%{$termino}%")
+                      ->orWhere('codigo', 'LIKE', "%{$termino}%")
+                      ->orWhere('ruc_dni', 'LIKE', "%{$termino}%");
+            })
+            ->when(!empty($idsExcluir), function($query) use ($idsExcluir) {
+                $query->whereNotIn('id', $idsExcluir);
+            })
+            ->where('estado_cliente', 'activo') // Solo clientes activos
+            ->select('id', 'codigo', 'nombre_comercial', 'razon_social', 'ruc_dni', 'ciudad')
+            ->limit(20) // Limitar resultados
+            ->get();
+
+        return response()->json($clientes);
+    }
+    
+ public function index()
+    {
+        // IMPORTANTE: Cargar la relación 'proyectos'
+        $clientes = Cliente::with('proyectos')
+                          ->orderBy('id', 'DESC')
+                          ->get();
+        
         return view('clientes.index', compact('clientes'));
     }
-
     public function create()
     {
         return view('clientes.create');
