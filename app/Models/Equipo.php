@@ -35,41 +35,61 @@ class Equipo extends Model
         return $this->belongsTo(Project::class, 'proyecto_id');
     }
 
-    // Relación con proyectos adicionales
+    // Relación con proyectos adicionales - ✨ CORREGIDO
     public function proyectos()
     {
-        return $this->belongsToMany(Project::class, 'equipo_proyecto')
-                    ->withTimestamps()
-                    ->withPivot('fecha_asignacion');
+        return $this->belongsToMany(
+            Project::class,           // Modelo relacionado
+            'equipo_proyecto',        // Tabla pivot
+            'equipo_id',              // Foreign key de este modelo (Equipo)
+            'proyecto_id'             // Foreign key del otro modelo (Project) ← IMPORTANTE
+        )
+        ->withTimestamps()
+        ->withPivot('fecha_asignacion');
     }
 
-    // Todos los miembros del equipo (líderes + miembros)
+    // Todos los miembros del equipo (líderes + miembros) - ✨ CORREGIDO
     public function miembros()
     {
-        return $this->belongsToMany(User::class, 'equipo_user')
-                    ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
-                    ->withTimestamps()
-                    ->where('equipo_user.activo', true);
+        return $this->belongsToMany(
+            User::class,
+            'equipo_user',
+            'equipo_id',
+            'user_id'
+        )
+        ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
+        ->withTimestamps()
+        ->wherePivot('activo', true);
     }
 
-    // Solo los líderes del equipo
+    // Solo los líderes del equipo - ✨ CORREGIDO
     public function lideres()
     {
-        return $this->belongsToMany(User::class, 'equipo_user')
-                    ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
-                    ->withTimestamps()
-                    ->where('equipo_user.rol_equipo', 'lider')
-                    ->where('equipo_user.activo', true);
+        return $this->belongsToMany(
+            User::class,
+            'equipo_user',
+            'equipo_id',
+            'user_id'
+        )
+        ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
+        ->withTimestamps()
+        ->wherePivot('rol_equipo', 'lider')
+        ->wherePivot('activo', true);
     }
 
-    // Solo los miembros regulares (sin líderes)
+    // Solo los miembros regulares (sin líderes) - ✨ CORREGIDO
     public function miembrosRegulares()
     {
-        return $this->belongsToMany(User::class, 'equipo_user')
-                    ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
-                    ->withTimestamps()
-                    ->where('equipo_user.rol_equipo', 'miembro')
-                    ->where('equipo_user.activo', true);
+        return $this->belongsToMany(
+            User::class,
+            'equipo_user',
+            'equipo_id',
+            'user_id'
+        )
+        ->withPivot('rol_equipo', 'fecha_asignacion', 'fecha_salida', 'activo')
+        ->withTimestamps()
+        ->wherePivot('rol_equipo', 'miembro')
+        ->wherePivot('activo', true);
     }
 
     // Usuario que creó el equipo
