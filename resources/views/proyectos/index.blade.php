@@ -366,62 +366,127 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    {{-- ACCORDION: PRESUPUESTOS --}}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target="#pres-{{ $p->id }}">
-                <i class="bi bi-cash-coin me-2"></i> Presupuestos
-            </button>
-        </h2>
+ {{-- ACCORDION: PRESUPUESTOS --}}
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#pres-{{ $p->id }}">
+            <i class="bi bi-cash-coin me-2"></i> Presupuestos
+        </button>
+    </h2>
 
-        <div id="pres-{{ $p->id }}" class="accordion-collapse collapse">
-            <div class="accordion-body">
+    <div id="pres-{{ $p->id }}" class="accordion-collapse collapse">
+        <div class="accordion-body">
 
-                @php
-                    $total = $p->presupuestos->sum('precio');
-                @endphp
+            @php
+                $total = $p->presupuestos->sum('precio');
+            @endphp
 
-                <ul class="list-group mb-3">
-                    @foreach($p->presupuestos as $pres)
-                        <li class="list-group-item d-flex justify-content-between">
-                            <div>
-                                <strong>{{ $pres->nombre }}</strong><br>
-                                <span class="text-muted">S/ {{ number_format($pres->precio, 2) }}</span>
-                            </div>
+            {{-- LISTA DE PRESUPUESTOS --}}
+            <ul class="list-group mb-3">
+                @foreach($p->presupuestos as $pres)
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ $pres->nombre }}</strong>
+                          <div class="small text-muted">
+    Tipo: {{ ucfirst($pres->tipo_pago) }} <br>
 
-                            <form action="{{ route('presupuestos.destroy', $pres->id) }}" 
-                                  method="POST" onsubmit="return confirm('¿Eliminar presupuesto?');">
+    Estado:
+    @if($pres->estado === 'activo')
+        <span class="badge bg-success">Activo</span>
+    @elseif($pres->estado === 'finalizado')
+        <span class="badge bg-secondary">Finalizado</span>
+    @else
+        <span class="badge bg-danger">Cancelado</span>
+    @endif
+
+    <br>
+    Inicio: {{ \Carbon\Carbon::parse($pres->fecha_inicio)->format('d/m/Y') }}
+
+    @if($pres->fecha_fin)
+        <br>Fin: {{ \Carbon\Carbon::parse($pres->fecha_fin)->format('d/m/Y') }}
+    @endif
+</div>
+
+                        </div>
+
+                        <div class="text-end">
+                            <div class="fw-bold">S/ {{ number_format($pres->precio, 2) }}</div>
+
+                            <form action="{{ route('presupuestos.destroy', $pres->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('¿Eliminar presupuesto?');">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-x-circle"></i>
+                                <button class="btn btn-outline-danger btn-sm mt-1">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-                        </li>
-                    @endforeach
-                </ul>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
 
-                <div class="alert alert-primary d-flex justify-content-between">
-                    <strong>Total:</strong>
-                    <span>S/ {{ number_format($total, 2) }}</span>
+            {{-- TOTAL --}}
+            <div class="alert alert-primary d-flex justify-content-between">
+                <strong>Total ejecutado:</strong>
+                <span>S/ {{ number_format($total, 2) }}</span>
+            </div>
+
+            {{-- NUEVO PRESUPUESTO --}}
+            <form action="{{ route('presupuestos.store') }}" method="POST" class="row g-2">
+                @csrf
+
+                <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
+
+                <div class="col-md-3">
+                    <input type="text"
+                           name="nombre"
+                           class="form-control"
+                           placeholder="Ej: Hosting"
+                           required>
                 </div>
 
-                {{-- Nuevo presupuesto --}}
-                <form action="{{ route('presupuestos.store') }}" method="POST" class="d-flex gap-2">
-                    @csrf
-                    <input type="hidden" name="proyecto_id" value="{{ $p->id }}">
-                    <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
-                    <input type="number" step="0.01" name="precio" class="form-control" placeholder="Precio" required>
-                    <button class="btn btn-success">
-                        <i class="bi bi-plus-circle"></i>
-                    </button>
-                </form>
+                <div class="col-md-2">
+                    <input type="number"
+                           step="0.01"
+                           name="precio"
+                           class="form-control"
+                           placeholder="Monto"
+                           required>
+                </div>
 
-            </div>
+                <div class="col-md-3">
+                    <select name="tipo_pago" class="form-select" required>
+                        <option value="">Tipo de pago</option>
+                        <option value="unico">Pago único</option>
+                        <option value="mensual">Mensual</option>
+                        <option value="bimestral">Bimestral</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <input type="date"
+                           name="fecha_inicio"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Agregar
+                    </button>
+                </div>
+            </form>
+
         </div>
     </div>
+</div>
+
 {{-- Agregar este nuevo accordion DESPUÉS del accordion de PRESUPUESTOS --}}
 
 {{-- ACCORDION: COTIZACIONES --}}

@@ -32,6 +32,13 @@
         <input type="text" name="representante" class="form-control"
                value="{{ $cliente->representante ?? '' }}">
     </div>
+<div class="col-md-6 mb-3">
+    <label>Nueva Contraseña</label>
+    <input type="password" name="password" class="form-control">
+    <small class="text-muted">
+        Déjalo vacío para mantener la contraseña actual
+    </small>
+</div>
 
     <div class="col-md-4 mb-3">
         <label>Email</label>

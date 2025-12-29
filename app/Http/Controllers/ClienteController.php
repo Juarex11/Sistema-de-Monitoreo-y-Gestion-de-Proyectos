@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class ClienteController extends Controller
 {
@@ -52,7 +53,10 @@ class ClienteController extends Controller
 
 public function store(Request $request)
 {
-    // Generar código único (por ejemplo: CLI-0001, CLI-0002, etc.)
+    $request->validate([
+        'password' => 'required|min:6',
+    ]);
+
     $ultimo = Cliente::latest('id')->first();
     $numero = $ultimo ? $ultimo->id + 1 : 1;
     $codigo = 'CLI-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
@@ -68,6 +72,7 @@ public function store(Request $request)
         'telefono_alt' => $request->telefono_alt,
         'email' => $request->email,
         'email_alt' => $request->email_alt,
+        'password' => Hash::make($request->password), // 👈 obligatorio
         'direccion' => $request->direccion,
         'ciudad' => $request->ciudad,
         'pais' => $request->pais,
@@ -78,7 +83,7 @@ public function store(Request $request)
     ]);
 
     return redirect()->route('clientes.index')
-                     ->with('success', 'Cliente registrado correctamente');
+        ->with('success', 'Cliente registrado correctamente');
 }
 
 
@@ -89,17 +94,22 @@ public function store(Request $request)
     }
 
     public function update(Request $request, $id)
-    {
-        $cliente = Cliente::findOrFail($id);
+{
+    $cliente = Cliente::findOrFail($id);
 
-        $cliente->update([
-            ...$request->all(),
-            'actualizado_por' => Auth::id(),
-        ]);
+    $data = $request->except('password');
+    $data['actualizado_por'] = Auth::id();
 
-        return redirect()->route('clientes.index')
-                         ->with('success', 'Cliente actualizado correctamente');
+    // 👇 solo si se envía
+    if ($request->filled('password')) {
+        $data['password'] = Hash::make($request->password);
     }
+
+    $cliente->update($data);
+
+    return redirect()->route('clientes.index')
+        ->with('success', 'Cliente actualizado correctamente');
+}
 
     public function destroy($id)
     {

@@ -9,7 +9,11 @@ class Presupuesto extends Model
     protected $fillable = [
         'proyecto_id',
         'nombre',
-        'precio'
+        'precio',
+        'tipo_pago',
+        'fecha_inicio',
+        'fecha_fin',
+        'estado'
     ];
 
     public function proyecto()

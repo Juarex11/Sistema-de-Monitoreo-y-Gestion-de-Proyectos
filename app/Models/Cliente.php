@@ -16,6 +16,7 @@ class Cliente extends Model
     'telefono_alt',
     'email',
     'email_alt',
+     'password',
     'direccion',
     'ciudad',
     'pais',
